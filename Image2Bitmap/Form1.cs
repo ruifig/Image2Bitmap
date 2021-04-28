@@ -22,6 +22,7 @@ namespace Image2Bitmap
         }
         
         private BackgroundWorker bgWork;
+        private String baseFilename;
 
         public Form1()
         {
@@ -54,6 +55,7 @@ namespace Image2Bitmap
                 try
                 {
                     imageBox.Image = Image.FromStream(openFile.OpenFile());
+                    baseFilename = Path.GetFileNameWithoutExtension(openFile.SafeFileName);
                     txt_imgSize.Text = string.Format(
                         "{0}\n{1}",
                         openFile.SafeFileName,
@@ -104,6 +106,7 @@ namespace Image2Bitmap
         private void ImageToCode(object sender, DoWorkEventArgs e)
         {
             StringBuilder result = new StringBuilder();
+            StringBuilder bitmaskResult = new StringBuilder();
             string codeFormat = "";
             int Width = 0, Height = 0;
             int bitInBlock = 7; // For BW/1bpp conversion
@@ -130,6 +133,12 @@ namespace Image2Bitmap
                 return;
             }
 
+            result.AppendFormat("constexpr int16_t {0}_width = {1};", baseFilename, num_Width.Value);
+            result.Append(Environment.NewLine + "\t");
+            result.AppendFormat("constexpr int16_t {0}_height = {1};", baseFilename, num_Height.Value);
+            result.Append(Environment.NewLine + "\t");
+            result.Append("const ");
+
             switch (e.Argument)
             {
                 case TransformColorFormats.BW_1bpp_H:
@@ -153,7 +162,9 @@ namespace Image2Bitmap
                     return;
             }
 
-            result.Append(" image = {" + Environment.NewLine + "\t");
+
+            result.Append(" " + baseFilename + "[] PROGMEM = {" + Environment.NewLine + "\t");
+            bitmaskResult.Append("const uint8_t " + baseFilename + "_bitmask[] PROGMEM = {" + Environment.NewLine + "\t");
 
             using (Bitmap bmp = new Bitmap(image, Width, Height))
             {
@@ -162,6 +173,9 @@ namespace Image2Bitmap
                 int pixelsTotal = bmp.Width * bmp.Height;
                 int pixelsCurrent = 0;
                 int ColorByte = 0;
+                int bitMaskByte = 0;
+                int bitMaskBitPos = 8;
+                int bitMaskCounter = 0;
 
                 // ===========================================================
                 // Optimisation: Upto 5x faster than GetPixel();
@@ -186,6 +200,20 @@ namespace Image2Bitmap
                     for (int x = 0; x < bmp.Width; x++)
                     {
                         pixelByte = (y * bmp.Width + x) * 4;
+
+                        bitMaskCounter++;
+                        bitMaskBitPos--;
+                        bitMaskByte |= (rgbValues[pixelByte + 3] == 0 ? 0 : 1) << bitMaskBitPos;
+                        if (bitMaskBitPos==0)
+                        {
+                            bitMaskBitPos = 8;
+                            bitmaskResult.AppendFormat("0x{0:x2}, ", bitMaskByte);
+                            bitMaskByte = 0;
+                            if ((bitMaskCounter % 64) == 0)
+                            {
+                                bitmaskResult.Append(Environment.NewLine + "\t");
+                            }
+                        }
 
                         switch (e.Argument)
                         {
@@ -267,6 +295,11 @@ namespace Image2Bitmap
             }
 
             result.Append(Environment.NewLine + "};");
+
+            result.Append(Environment.NewLine);
+            bitmaskResult.Append(Environment.NewLine + "};");
+            result.Append(bitmaskResult);
+
             e.Result = result.ToString();
         }
         #endregion
