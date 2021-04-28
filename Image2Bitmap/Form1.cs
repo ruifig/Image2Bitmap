@@ -133,10 +133,13 @@ namespace Image2Bitmap
                 return;
             }
 
+            result.Append("//" + Environment.NewLine);
+            result.AppendFormat("// {0}, {1}*{2}" + Environment.NewLine, baseFilename, num_Width.Value, num_Height.Value);
+            result.Append("//" + Environment.NewLine);
             result.AppendFormat("constexpr int16_t {0}_width = {1};", baseFilename, num_Width.Value);
-            result.Append(Environment.NewLine + "\t");
+            result.Append(Environment.NewLine);
             result.AppendFormat("constexpr int16_t {0}_height = {1};", baseFilename, num_Height.Value);
-            result.Append(Environment.NewLine + "\t");
+            result.Append(Environment.NewLine);
             result.Append("const ");
 
             switch (e.Argument)
