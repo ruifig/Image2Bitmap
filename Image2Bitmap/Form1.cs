@@ -136,9 +136,9 @@ namespace Image2Bitmap
             result.Append("//" + Environment.NewLine);
             result.AppendFormat("// {0}, {1}*{2}" + Environment.NewLine, baseFilename, num_Width.Value, num_Height.Value);
             result.Append("//" + Environment.NewLine);
-            result.AppendFormat("constexpr int16_t {0}_width = {1};", baseFilename, num_Width.Value);
+            result.AppendFormat("constexpr int16_t img_{0}_width = {1};", baseFilename, num_Width.Value);
             result.Append(Environment.NewLine);
-            result.AppendFormat("constexpr int16_t {0}_height = {1};", baseFilename, num_Height.Value);
+            result.AppendFormat("constexpr int16_t img_{0}_height = {1};", baseFilename, num_Height.Value);
             result.Append(Environment.NewLine);
             result.Append("const ");
 
@@ -166,8 +166,8 @@ namespace Image2Bitmap
             }
 
 
-            result.Append(" " + baseFilename + "[] PROGMEM = {" + Environment.NewLine + "\t");
-            bitmaskResult.Append("const uint8_t " + baseFilename + "_bitmask[] PROGMEM = {" + Environment.NewLine + "\t");
+            result.Append(" img_" + baseFilename + "_bmp[] PROGMEM = {" + Environment.NewLine + "\t");
+            bitmaskResult.Append("const uint8_t img_" + baseFilename + "_bitmask[] PROGMEM = {" + Environment.NewLine + "\t");
 
             using (Bitmap bmp = new Bitmap(image, Width, Height))
             {
@@ -302,6 +302,8 @@ namespace Image2Bitmap
             result.Append(Environment.NewLine);
             bitmaskResult.Append(Environment.NewLine + "};");
             result.Append(bitmaskResult);
+            result.AppendFormat(Environment.NewLine + "const Image img_{0} PROGMEM = {{ img_{0}_bmp, img_{0}_bitmask, img_{0}_width, img_{0}_height }};" + Environment.NewLine,
+                baseFilename);
 
             e.Result = result.ToString();
         }
